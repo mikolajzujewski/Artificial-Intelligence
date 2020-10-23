@@ -50,10 +50,10 @@ def generateCords():
 def generateSamples(cords):
     rawSamps = samples.get()
     samps = int(rawSamps)
-    var = numpy.random.uniform(0.005, 0.035)
     sampsCords = []
     for i in cords:
         for j in range(0, samps):
+            var = numpy.random.uniform(0.005, 0.035)
             randCord = numpy.random.normal(loc=i, scale=var)
             sampsCords.append(randCord)
     return sampsCords
