@@ -1,0 +1,5 @@
+samples should be shuffled
+dont process all at once
+sample by sample and get prediction
+or batch by batch say 20 samples
+samples should be shuffled
