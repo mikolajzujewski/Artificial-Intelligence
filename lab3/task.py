@@ -78,46 +78,42 @@ greenYs = []
 class Layer_Dense:
     def __init__(self, n_inputs, n_neurons, func, funcPrime):
         self.weights = np.random.randn(n_inputs, n_neurons)
-        self.biases = np.zeros((1, n_neurons))
         self.func = func
         self.funcPrime = funcPrime
     def forward(self, inputs):
         self.inputs = inputs
-        self.states = np.dot(self.inputs, self.weights) + self.biases
-        state = np.dot(self.inputs, self.weights)
-        print(state)
-        print(self.states)
+        #self.states = np.dot(self.inputs, self.weights) + self.biases
+        self.states = np.dot(self.inputs, self.weights)
+        #print(state)
+        #print(self.states)
         return self.activate()
     def activate(self):
         self.output = []
         for s in self.states:
-            out = []
-            for i in s:
-                out.append(self.func(i))
-            self.output.append(out)
-        return self.output[0]
+            self.output.append(self.func(s))
+        return self.output
     def backward(self, grad):
         self.gradPrime = []
         for s in self.states:
-            out = []
-            for i in s:
-                out.append(self.funcPrime(i))
-            self.gradPrime.append(out)
+            self.gradPrime.append(self.funcPrime(s))
         return self.backwardActivate()
     def backwardActivate(self):
         self.grad = self.gradPrime
         self.gradOut = np.dot(self.weights, np.transpose(self.grad))
         return self.gradOut[0]
     def adjust(self, eta):
-        correction = eta * np.dot(np.array(self.grad).T, [self.inputs])
+        correction = eta * np.dot(np.array([self.inputs]).T, [self.grad])
+        #print(self.weights)
+        #print(correction)
         """print(correction)
         #self.weights += (eta * np.dot(np.array(self.grad).T, self.inputs))
         #self.weights += correction
-        print(self.weights)
         self.weights = np.add(self.weights, correction.T)
         print("ok")
         print(self.weights)"""
-        self.weights = np.add(self.weights, correction.T)
+        self.weights = np.add(self.weights, correction)
+        #print(self.weights)
+
 
 
 
@@ -131,7 +127,7 @@ def generateCords():
     return generateSamples(cords)
 
 def generateSamples(cords):
-    samps = 20
+    samps = 50
     sampsCords = []
     for i in cords:
         for j in range(0, samps):
@@ -186,10 +182,12 @@ def train(data, epochs):
             #print(label)
             #print(ins)
             
-            grad = 2 * np.subtract(label, ins)
-            #print(label)
-            #print(ins)
-            #print(grad)
+            #grad = np.subtract(label, ins)
+            grad = [label[0] - ins[0], label[1] - ins[1]]
+
+            print(label)
+            print(ins)
+            print("grad ->", grad)
 
             for layer in layers[::-1]:
                 grad = layer.backward(grad)
@@ -237,8 +235,8 @@ testR = redInputsTest[0]
 print(testG)
 print(testR)
 
-active = sinFunc
-activePrime = sinFuncPrime
+active = ReLuFunc
+activePrime = ReLuFuncPrime
 
 layer1 = Layer_Dense(2, 2, active, activePrime)
 layers.append(layer1)
@@ -247,23 +245,26 @@ layers.append(layer2)
 layer3 = Layer_Dense(4, 2, active, activePrime)
 layers.append(layer3)
 
-for layer in layers:
+"""for layer in layers:
     print("\n")
-    print(layer.weights)
+    print(layer.weights)"""
 
 print("\n\n")
 
-train(trainingData, 20)
+train(trainingData, 10)
 
 for layer in layers:
     testG = layer.forward(testG)
+    print("<")
     print(layer.output)
+    print(">")
 
-for layer in layers:
+
+"""for layer in layers:
     testR = layer.forward(testR)
     #print(layer.output)
     print("\n")
-    print(layer.weights)
+    print(layer.weights)"""
 
 
 #print(trainingData)
