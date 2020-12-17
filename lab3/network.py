@@ -1,6 +1,12 @@
 import numpy as np
 import random
 
+import tkinter
+import matplotlib
+
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
 
 def ReLuFunc(x):
     if x > 0:
@@ -66,16 +72,13 @@ def leakyReLuFuncPrime(x):
 
 np.random.seed(0)
 
-X = [[1, 2],
-     [2, 2],
-     [-1.5, 2.7]]
 
 redXs = []
 redYs = []
 greenXs = []
 greenYs = []
 
-class Layer_Dense:
+class Layer:
     def __init__(self, n_inputs, n_neurons, func, funcPrime):
         self.weights = np.random.randn(n_neurons, n_inputs)
         self.func = func
@@ -96,21 +99,46 @@ class Layer_Dense:
         self.gradPrime = []
         for i in range(0, len(grad)):
             self.gradPrime.append(self.statesPrime[i] * grad[i])
-        return self.backwardActivate()
-    def backwardActivate(self):
+        return self.backwardLinear()
+    def backwardLinear(self):
         self.grad = self.gradPrime
         self.gradOut = np.dot(self.grad, self.weights)
         return self.gradOut
-    def adjust(self, eta):
-        correction = np.dot(np.array([self.grad]).T, np.array([self.inputs])) * eta
+    def adjust(self):
+        correction = np.dot(np.array([self.grad]).T, np.array([self.inputs])) * ETA
         self.weights = np.add(self.weights, correction)
 
 
 
+def _quit():
+    root.quit()
+
+def _update():
+    try:
+        global redXs, redYs, greenXs, greenYs
+        redXs = generateCords()
+        redYs = generateCords()
+        greenXs = generateCords()
+        greenYs = generateCords()
+        drawModes()
+        canvas.get_tk_widget().pack()
+        canvas.draw()
+    except:
+        print("Something is wrong, update canceled")
+
+def drawModes():
+    plot.cla()
+    plot.axis([0, 1, 0, 1])
+    plot.plot(redXs, redYs, 's', color="red", marker="o")
+    plot.plot(greenXs, greenYs, 's', color="green", marker="o")
+    canvas.get_tk_widget().pack()
+    canvas.draw()
+    
+
 
 
 def generateCords():
-    points = 1
+    points = MODES
     cords = []
     for i in range(0, points):
         randCord = np.random.rand()
@@ -118,7 +146,7 @@ def generateCords():
     return generateSamples(cords)
 
 def generateSamples(cords):
-    samps = 30
+    samps = SAMPS
     sampsCords = []
     for i in cords:
         for j in range(0, samps):
@@ -135,6 +163,29 @@ def prepareInputs(cords):
         pair.append(y)
         inputs.append(pair)
     return inputs
+
+def _drawContour():
+    global layers
+    drawModes()
+    X = np.arange(0.0, 1.01, 0.01)
+    Y = np.arange(0.0, 1.01, 0.01)
+    Z = []
+    for (i, x) in enumerate(X):
+        Z.append([])
+        for y in Y:
+            inp = [x, y]
+            for layer in layers:
+                inp = layer.forward(inp)
+            Z[i].append(layers[-1].output[0])
+
+    contour = plot.contourf(X, Y, Z)
+
+    contour.clabel(colors="black")
+    canvas.get_tk_widget().pack()
+    canvas.draw()
+
+
+
 
 def prepareInputsLabels(cords, label):
     inputs = []
@@ -157,138 +208,97 @@ def prepareTrainingData(redIns, greenIns):
     random.shuffle(inputs)
     return inputs
 
-
-
-
-
 def train(data, epochs):
     global layers
     for e in range(0, epochs):
         for (ins, label) in data:
-            #print(ins)
             for layer in layers:
-                #print("layer")
                 ins = layer.forward(ins)
-                #print(layer.inputs)
 
-            #print(label)
-            #print(ins)
-            
-            #grad = np.subtract(label, ins)
-
-            #grad = np.array([label[0] - ins[0], label[1] - ins[1]]) * 2
             grad = np.subtract(np.array(label), np.array(ins)) * 2
             
-            
-
-            """print(label)
-            print(ins)
-            print("grad ->", grad)"""
-
             for layer in layers[::-1]:
                 grad = layer.backward(grad)
-                #print(layer.inputs)
-                #print(layer.grad)
-                #print(layer.weights)
             
             for layer in layers:
-                #print("lel")
-                """print(layer.grad)
-                print([layer.inputs])
-                print(np.array(layer.grad).T)
-                print(np.dot(np.array(layer.grad).T, [layer.inputs]))
-                print(layer.inputs)
-                print(np.transpose(layer.inputs))
-                print(np.array([layer.inputs]).T)
-                print(layer.weights)"""
-
-                
-                #print(np.dot(layer.grad, layer.inputs))
-                layer.adjust(0.25)
+                layer.adjust()
     print("done")
 
 
+def _training():
+    global redInputs, greenInputs, redXs, redYs, greenXs, greenYs
+    redInputs = prepareInputsLabels(zip(redXs, redYs), [1, 0])
+    greenInputs = prepareInputsLabels(zip(greenXs, greenYs), [0, 1])
+    trainingData = prepareTrainingData(redInputs, greenInputs)
+    rawEpochs = epochs.get()
+    n_epochs = int(rawEpochs)
+    train(trainingData, n_epochs)
 
-redXs = generateCords()
-redYs = generateCords()
-greenXs = generateCords()
-greenYs = generateCords()
 
-redInputs = prepareInputsLabels(zip(redXs, redYs), [1, 0])
-greenInputs = prepareInputsLabels(zip(greenXs, greenYs), [0, 1])
-greenInputsTest = prepareInputs(zip(greenXs, greenYs))
-redInputsTest = prepareInputs(zip(redXs, redYs))
 
-"""redInputs = prepareInputs(zip(redXs, redYs))
-greenInputs = prepareInputs(zip(greenXs, greenYs))"""
+#///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-trainingData = prepareTrainingData(redInputs, greenInputs)
+active = tanhFunc
+activePrime = tanhFuncPrime
+
+ETA = 0.25
+MODES = 1
+SAMPS = 40
+
+# Layer = (inputs, neurons, func, funcPrime)
+
 
 layers = []
 
-testG = greenInputsTest[5]
-testR = redInputsTest[0]
 
-
-active = sigmoidFunc
-activePrime = sigmoidFuncPrime
-
-layer1 = Layer_Dense(2, 4, active, activePrime)
+layer1 = Layer(2, 2, active, activePrime)
 layers.append(layer1)
-layer2 = Layer_Dense(4, 3, active, activePrime)
+layer2 = Layer(2, 4, active, activePrime)
 layers.append(layer2)
-layer3 = Layer_Dense(3, 5, active, activePrime)
+layer3 = Layer(4, 4, active, activePrime)
 layers.append(layer3)
-layer4 = Layer_Dense(5, 2, active, activePrime)
+layer4 = Layer(4, 2, active, activePrime)
 layers.append(layer4)
 
-"""for layer in layers:
-    print("\n")
-    print(layer.weights)"""
 
-print("\n\n")
-
-train(trainingData, 400)
-
-print("green")
-
-for layer in layers:
-    testG = layer.forward(testG)
-    print("<")
-    print(layer.output)
-    print(">")
-
-print("red")
-
-for layer in layers:
-    testR = layer.forward(testR)
-    print("<")
-    print(layer.output)
-    print(">")
-    
-"""
+#///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-#print(trainingData)
 
-ins = redInputs
-for i in ins:
-    for layer in layers:
-        print(i)
-        i = layer.forward(i)
-        print(layer.output, "\n\n")"""
+root = tkinter.Tk()
+root.wm_title("Sample genrator")
+
+figure = Figure(figsize=(5, 5), dpi=120)
+plot = figure.add_subplot(1,1,1)
+plot.axis([0, 1, 0, 1])
+
+canvas = FigureCanvasTkAgg(figure, root)
+canvas.get_tk_widget().pack()
+
+modes = tkinter.Entry(root)
+samples = tkinter.Entry(root)
+epochs = tkinter.Entry(root)
 
 
 
 
+labelModsText = tkinter.StringVar()
+labelSamplesText = tkinter.StringVar()
+labelEpochsText = tkinter.StringVar()
+labelEpochsText.set("Number of epochs:")
+labelMods = tkinter.Label(root, textvariable=labelModsText)
+labelSamples = tkinter.Label(root, textvariable=labelSamplesText)
+labelEpochs = tkinter.Label(root, textvariable=labelEpochsText)
+labelEpochs.pack()
+epochs.pack()
+updateButton = tkinter.Button(master=root, text="Update", command=_update)
+exitButton = tkinter.Button(master=root, text="Exit", command=_quit)
+testButton = tkinter.Button(master=root, text="Train", command=_training)
+pletButton = tkinter.Button(master=root, text="Draw", command=_drawContour)
+updateButton.pack()
+testButton.pack()
+pletButton.pack()
+exitButton.pack()
 
 
-"""layer1.forward(redInputs)
-print(layer1.output, "\n")
-layer2.forward(layer1.output)
-print(layer2.output, "\n")
-layer3.forward(layer2.output)
-print(layer3.output, "\n\n")
-print(redInputs)
-print("\n\n")"""
-#print(X)
+root.mainloop()
