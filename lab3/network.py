@@ -238,11 +238,11 @@ def _training():
 
 #///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-active = tanhFunc
-activePrime = tanhFuncPrime
+active = heavisideFunc
+activePrime = heavisideFuncPrime
 
 ETA = 0.25
-MODES = 1
+MODES = 3
 SAMPS = 40
 
 # Layer = (inputs, neurons, func, funcPrime)
