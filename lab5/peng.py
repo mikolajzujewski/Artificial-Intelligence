@@ -6,7 +6,7 @@ import skfuzzy as fuzz
 import skfuzzy.control as fuzzcontrol
 import numpy as np
 
-FPS = 30
+FPS = 60
 
 
 class Board:
@@ -226,20 +226,19 @@ class FuzzyPlayer(Player):
     def __init__(self, racket: Racket, ball: Ball, board: Board):
         super(FuzzyPlayer, self).__init__(racket, ball, board)
         x_dist = fuzz.control.Antecedent(np.arange(-755, 756, 1), 'x_dist') # max and min distance
-        speed = fuzz.control.Consequent(np.arange(-40, 41, 1), 'speed') # half of the racket
+        speed = fuzz.control.Consequent(np.arange(-100, 101, 1), 'speed') # half of the racket wasn not enough, 100 works fine 
 
         x_dist['right'] = fuzz.trimf(x_dist.universe, [-755, -755, 0])
-        x_dist['within'] = fuzz.trimf(x_dist.universe, [-40, 0, 40])
+        x_dist['within'] = fuzz.trimf(x_dist.universe, [-100, 0, 100])
         x_dist['left'] = fuzz.trimf(x_dist.universe, [0, 755, 755])
 
-        speed['left'] = fuzz.trimf(speed.universe, [-40, -40, -20])
+        speed['left'] = fuzz.trimf(speed.universe, [-100, -100, -20])
         speed['within'] = fuzz.trimf(speed.universe, [-20, 0, 20])
-        speed['right'] = fuzz.trimf(speed.universe, [20, 40, 40])
+        speed['right'] = fuzz.trimf(speed.universe, [20, 100, 100])
 
         rule1 = fuzz.control.Rule(x_dist['left'], speed['left'])
         rule2 = fuzz.control.Rule(x_dist['within'], speed['within'])
         rule3 = fuzz.control.Rule(x_dist['right'], speed['right'])
-
 
         racket_controller = fuzz.control.ControlSystem([rule1, rule2, rule3])
         self.racketControl = fuzz.control.ControlSystemSimulation(racket_controller)
